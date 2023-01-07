@@ -1,0 +1,90 @@
+
+Option Explicit
+
+Sub Multiple_year_Stock_Market_Data()
+
+' Declare variables
+Dim ws As Worksheet
+Dim lastRow As Long
+Dim ticker As String
+Dim closing_price As Double
+Dim yearly_change As Double
+Dim percent_change As Double
+Dim volume As Double
+Dim dataRow As Long
+Dim outputRow As Long
+Dim openingPrices As Object
+
+Set openingPrices = CreateObject("Scripting.Dictionary")
+
+outputRow = 2
+
+' Loop through each worksheet
+For Each ws In ThisWorkbook.Worksheets
+    ws.Activate
+    lastRow = Cells(Rows.Count, "A").End(xlUp).row
+    ' Add the labels for the summary column headers
+    Cells(1, 9).Value = "Ticker"
+    Cells(1, 10).Value = "Yearly Change"
+    Cells(1, 11).Value = "Percent Change"
+    Cells(1, 12).Value = "Total Stock Volume"
+    Cells(2, 14).Value = "Greatest % Increase"
+    Cells(3, 14).Value = "Greatest % Decrease"
+    Cells(4, 14).Value = "Greatest Total Volume"
+
+    ' Loop through each row in the column
+    For dataRow = 2 To lastRow
+        ticker = Cells(dataRow, 1).Value
+        closing_price = Cells(dataRow, 6).Value
+
+        ' Store the opening price for the ticker if it hasn't been stored already
+        If Not openingPrices.Exists(ticker) Then
+            openingPrices(ticker) = Cells(dataRow, 3).Value
+        End If
+
+        ' Add the volume until a new ticker is found
+        volume = volume + Cells(dataRow, 7).Value
+
+        ' If a new ticker is found, print it to the new table and retrieve the opening price from the dictionary
+        If Cells(dataRow + 1, 1).Value <> ticker Then
+            ' Retrieve the opening price from the dictionary
+            Dim opening_price As Double
+            opening_price = openingPrices(ticker)
+
+            ' Calculate yearly change and percentage change
+            yearly_change = closing_price - opening_price
+
+            ' Ignore the 0's
+            If opening_price <> 0 Then
+                percent_change = (yearly_change / opening_price) * 100
+            End If
+
+            ' Apply results in the new table
+            Cells(outputRow, 9).Value = ticker
+            Cells(outputRow, 10).Value = yearly_change
+            Cells(outputRow, 11).Value = percent_change
+            Cells(outputRow, 12).Value = volume
+
+            ' Formatting
+            Cells(outputRow, 11).Value = Format(Cells(outputRow, 11) / 100, "#.####%")
+
+            Dim cell As Variant
+            cell = ws.Cells(outputRow, 10).Value
+            Set cell = ws.Cells(outputRow, 10)
+
+            If cell < 0 Then
+                cell.Interior.ColorIndex = 3
+            ElseIf cell > 0 Then
+                cell.Interior.ColorIndex = 4
+            End If
+
+            ' Reset the volume for the new stock
+            volume = 0
+
+            ' Increment the row for the new stock
+            outputRow = outputRow + 1
+        End If
+    Next dataRow
+Next ws
+
+End Sub
